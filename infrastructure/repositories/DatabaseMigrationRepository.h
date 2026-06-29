@@ -1,0 +1,13 @@
+//
+// Created by Thomas Bekkedal Moen on 29/06/2026.
+//
+
+#ifndef UNTITLED_DATABASEMIGRATIONREPOSITORY_H
+#define UNTITLED_DATABASEMIGRATIONREPOSITORY_H
+
+
+class DatabaseMigrationRepository {
+};
+
+
+#endif //UNTITLED_DATABASEMIGRATIONREPOSITORY_H

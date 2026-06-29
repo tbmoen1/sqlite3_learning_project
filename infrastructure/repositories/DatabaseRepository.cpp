@@ -4,26 +4,31 @@
 
 #include "DatabaseRepository.h"
 #include <filesystem>
+#include <iostream>
 #include <sqlite3.h>
 #include <string>
+#include <sys/_types/_uuid_t.h>
 
-auto dbFileName = "database.sqlite3"; // auto resolves to const char*
+#include "../../domain/PressedKey.h"
+
+class PressedKey;
+auto dbFileName = "sqlite3.db"; // auto resolves to const char*
 sqlite3* db;
+int rc;
 
-void InitializeDb(sqlite3* database) {
+void InitializeDb() {
     // sqlite3_open creates or opens db file if it does not exist,
     // TryGetDb() is just something i made for fun
-    bool dbExists = TryGetDb();
-    int opened = sqlite3_open(dbFileName, &database);
+    const bool dbExists = TryGetDb();
 
-    if (opened) {
-        printf("Database could not be opened %s \n", sqlite3_errmsg(database));
+    if (sqlite3_open(dbFileName, &db)) {
+        printf("Database could not be opened %s \n", sqlite3_errmsg(db));
         return;
     }
 
-    db = database;
     if (!dbExists) {
         printf("New database created, running migrations\n");
+
     } else {
         printf("Opened existing database\n");
     }
@@ -41,4 +46,39 @@ bool TryGetDb() {
         exists = false;
     }
     return exists;
+}
+
+int InsertKeyPress(PressedKey& pressedKey) {
+    std::string sql = PressedKey::insert_key_sql;
+    sqlite3_stmt* statement;
+
+    rc = sqlite3_prepare_v2(db, sql.c_str(), strlen(sql.c_str()), &statement, nullptr);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        sqlite3_close(db);
+        return rc;
+    }
+
+    // Deserialize uuid_t from class into string for db insert
+    char idStr[37];
+    uuid_unparse(pressedKey.id, idStr);
+
+    const std::string key = pressedKey.key;
+
+    // same with timestamp, assign to t -> deserialize to string for db insert
+    const auto t = std::chrono::system_clock::to_time_t(pressedKey.timesStamp);
+    const auto tsStr = std::string(std::ctime(&t));
+
+    sqlite3_bind_text(statement, 1, idStr, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(statement, 2, key.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(statement, 3, tsStr.c_str(), -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(statement);
+    if (rc == SQLITE_DONE) {
+        std::cout << "Data inserted successfully!" << std::endl;
+        return SQLITE_OK;
+    }
+    // Else
+    std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
+    return SQLITE_ERROR;
 }

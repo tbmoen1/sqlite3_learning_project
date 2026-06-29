@@ -9,6 +9,7 @@
 class DatabaseRepository {
 };
 bool TryGetDb();
+void InitializeDb();
 
 
 #endif //UNTITLED_DATABASEREPOSITORY_H

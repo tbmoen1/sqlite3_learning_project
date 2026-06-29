@@ -1,6 +1,5 @@
-#include <iostream>
-
+#include "infrastructure/repositories/DatabaseRepository.h"
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    InitializeDb();
     return 0;
 }
